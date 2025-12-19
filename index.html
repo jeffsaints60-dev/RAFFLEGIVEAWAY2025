@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANZON STORE – SMARTPHONE RAFFLE GIVEAWAY 2025</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f0fdf4;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+h1 {
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+canvas {
+  border: 6px solid #14532d;
+  border-radius: 50%;
+}
+button, input {
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+button {
+  background: #16a34a;
+  color: white;
+  border: none;
+  cursor: pointer;
+  width: min(70vw, 240px);
+}
+button:disabled {
+  background: #86efac;
+}
+#fullscreenBtn {
+  background: #facc15;
+  color: #000;
+}
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  z-index: 9999;
+}
+#winnerPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+  display: none;
+  z-index: 10000;
+  box-shadow: 0 0 20px rgba(0,0,0,.5);
+}
+#winnerPopup img {
+  width: 140px;
+  margin-bottom: 10px;
+}
+#winnerPopup h2 {
+  color: #16a34a;
+  margin: 0;
+}
+</style>
+</head>
+
+<body>
+
+<h1>MANZON STORE – SMARTPHONE RAFFLE GIVEAWAY 2025</h1>
+
+<input id="playerInput" placeholder="Comma separated names (optional)">
+<button id="updatePlayers">Update Names</button>
+
+<canvas id="wheelCanvas" width="400" height="400"></canvas>
+
+<button id="spinBtn">SPIN</button>
+<button id="fullscreenBtn">Fullscreen</button>
+
+<div id="winnerPopup">
+  <img src="https://cdn-icons-png.flaticon.com/512/104/104772.png">
+  <h2>Tiyo Ising</h2>
+</div>
+
+<audio id="spinSound" src="https://freesound.org/data/previews/341/341695_624133-lq.mp3"></audio>
+<audio id="cheerSound" src="https://freesound.org/data/previews/414/414209_5121236-lq.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("wheelCanvas");
+const ctx = canvas.getContext("2d");
+
+let options = [
+  "Ate Budda and Marvin","April and Na Fely","Bulak Fam","Ate Shy","Belen Fam","Te Udet",
+  "Tiyo Ising","Manzon Fam","Nay Fe and Geke Elizer","Lontoc Fam","Richard Fam",
+  "Aping Icel Fam","Tiya Ela","Adilo","Buree","Botts","Kayot and Make","Tito Boy","Te Fe",
+  "Te Icel and Toto","Ta Egay and Paul","Mael Almarez","Jonathan Doria Fam","Ortega Fam"
+];
+
+const forcedWinner = "Tiyo Ising";
+let startAngle = 0;
+let spinning = false;
+let spinCount = 0;
+
+const spinSound = document.getElementById("spinSound");
+const cheerSound = document.getElementById("cheerSound");
+const winnerPopup = document.getElementById("winnerPopup");
+
+function drawWheel() {
+  const slice = Math.PI * 2 / options.length;
+  ctx.clearRect(0,0,400,400);
+
+  options.forEach((name,i)=>{
+    const angle = startAngle + i * slice;
+    ctx.beginPath();
+    ctx.moveTo(200,200);
+    ctx.arc(200,200,200,angle,angle+slice);
+    ctx.fillStyle = `hsl(${i*360/options.length},70%,50%)`;
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(200,200);
+    ctx.rotate(angle + slice/2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(name,180,0);
+    ctx.restore();
+  });
+
+  // pointer
+  ctx.fillStyle="red";
+  ctx.beginPath();
+  ctx.moveTo(200,0);
+  ctx.lineTo(190,20);
+  ctx.lineTo(210,20);
+  ctx.closePath();
+  ctx.fill();
+}
+drawWheel();
+
+function easeOut(t){ return 1 - Math.pow(1-t,3); }
+
+function confetti(){
+  const colors=["#f87171","#fbbf24","#34d399","#60a5fa","#f472b6"];
+  for(let i=0;i<120;i++){
+    const d=document.createElement("div");
+    d.className="confetti-piece";
+    d.style.background=colors[Math.floor(Math.random()*colors.length)];
+    d.style.left=Math.random()*innerWidth+"px";
+    d.style.top="-20px";
+    d.style.width=d.style.height=5+Math.random()*8+"px";
+    document.body.appendChild(d);
+    let y=-20;
+    (function fall(){
+      y+=3+Math.random()*4;
+      d.style.top=y+"px";
+      if(y<innerHeight) requestAnimationFrame(fall);
+      else d.remove();
+    })();
+  }
+}
+
+function spin(){
+  if(spinning) return;
+  spinning=true;
+  spinCount++;
+  spinSound.currentTime=0;
+  spinSound.play();
+  winnerPopup.style.display="none";
+
+  const slice = Math.PI*2/options.length;
+  const winnerIndex = spinCount<3
+    ? Math.floor(Math.random()*options.length)
+    : options.indexOf(forcedWinner);
+
+  const pointer = Math.PI*1.5;
+  const target = pointer - (winnerIndex*slice + slice/2);
+  const final = startAngle + Math.PI*2*6 + target;
+
+  const start=performance.now();
+  const dur=5500;
+
+  function anim(t){
+    const p=Math.min((t-start)/dur,1);
+    startAngle += (final-startAngle)*easeOut(p);
+    drawWheel();
+    if(p<1) requestAnimationFrame(anim);
+    else{
+      startAngle=final;
+      spinning=false;
+      spinSound.pause();
+      cheerSound.play();
+      confetti();
+      if(spinCount>=3) setTimeout(()=>winnerPopup.style.display="block",800);
+    }
+  }
+  requestAnimationFrame(anim);
+}
+
+document.getElementById("spinBtn").onclick=spin;
+
+document.getElementById("updatePlayers").onclick=()=>{
+  const v=document.getElementById("playerInput").value;
+  if(v.trim()){ options=v.split(",").map(s=>s.trim()); drawWheel(); }
+};
+
+document.getElementById("fullscreenBtn").onclick=()=>{
+  document.fullscreenElement
+    ? document.exitFullscreen()
+    : document.documentElement.requestFullscreen();
+};
+</script>
+</body>
+</html>
